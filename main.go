@@ -29,7 +29,8 @@ func (router Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	var router Router
+	http.Handle("/", http.HandlerFunc(homeHandler))
+	http.HandleFunc("/contact", http.HandlerFunc(contactHandler).ServeHTTP)
 	fmt.Println("Listening on port 3000")
-	_ = http.ListenAndServe(":3000", router)
+	_ = http.ListenAndServe(":3000", nil)
 }
