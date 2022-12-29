@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
@@ -29,8 +30,9 @@ func (router Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.Handle("/", http.HandlerFunc(homeHandler))
-	http.HandleFunc("/contact", http.HandlerFunc(contactHandler).ServeHTTP)
+	r := chi.NewRouter()
+	r.Get("/", homeHandler)
+	r.Get("/contact", contactHandler)
 	fmt.Println("Listening on port 3000")
-	_ = http.ListenAndServe(":3000", nil)
+	_ = http.ListenAndServe(":3000", r)
 }
