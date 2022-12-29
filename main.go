@@ -6,11 +6,12 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+func renderTemplate(w http.ResponseWriter, path string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	t, err := template.ParseFiles("templates/home.html")
+	t, err := template.ParseFiles(path)
 
 	if err != nil {
 		log.Printf("parsing template %v", err)
@@ -21,22 +22,15 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 	_ = t.Execute(w, nil)
 }
 
-func contactHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, _ = fmt.Fprint(w, "<h1>Contact Page</h1>")
+func homeHandler(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join("templates", "home.html")
+	renderTemplate(w, path)
+
 }
 
-type Router struct{}
-
-func (router Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/":
-		homeHandler(w, r)
-	case "/contact":
-		contactHandler(w, r)
-	default:
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-	}
+func contactHandler(w http.ResponseWriter, r *http.Request) {
+	path := filepath.Join("templates", "contact.html")
+	renderTemplate(w, path)
 }
 
 func main() {
