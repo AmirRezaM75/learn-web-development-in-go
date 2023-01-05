@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func Render(w http.ResponseWriter, fs fs.FS, path string) {
+func Render(w http.ResponseWriter, fs fs.FS, path string, data any) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	t, err := template.ParseFS(fs, path)
 
@@ -17,5 +17,5 @@ func Render(w http.ResponseWriter, fs fs.FS, path string) {
 		return
 	}
 
-	_ = t.Execute(w, nil)
+	_ = t.Execute(w, data)
 }
