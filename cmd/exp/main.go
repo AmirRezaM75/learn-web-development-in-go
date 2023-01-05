@@ -1,29 +1,17 @@
 package main
 
-import (
-	"html/template"
-	"os"
-)
-
-type User struct {
-	Name string
-	Meta UserMeta
-}
-
-type UserMeta struct {
-	Age int
-}
+import "fmt"
 
 func main() {
-	user := User{
-		Name: "Twitch",
-		Meta: UserMeta{
-			Age: 20,
-		},
+	fmt.Println(sum(1, 2, 3)) // 6
+	numbers := []int{1, 2, 3}
+	fmt.Println(sum(numbers...)) // 6
+}
+
+func sum(numbers ...int) int {
+	var sum int = 0
+	for _, number := range numbers {
+		sum += number
 	}
-	t, err := template.ParseFiles("index.html")
-	if err != nil {
-		panic(err)
-	}
-	_ = t.Execute(os.Stdout, user)
+	return sum
 }
