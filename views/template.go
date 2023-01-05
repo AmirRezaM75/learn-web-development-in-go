@@ -1,15 +1,24 @@
 package views
 
 import (
+	"gallery/resources"
 	"html/template"
-	"io/fs"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
-func Render(w http.ResponseWriter, fs fs.FS, path string, data any) {
+func Render(w http.ResponseWriter, data any, paths ...string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	t, err := template.ParseFS(fs, path)
+
+	var patterns []string
+
+	for _, path := range paths {
+		path = filepath.Join("views", path)
+		patterns = append(patterns, path)
+	}
+
+	t, err := template.ParseFS(resources.FS, patterns...)
 
 	if err != nil {
 		log.Printf("parsing template %v", err)

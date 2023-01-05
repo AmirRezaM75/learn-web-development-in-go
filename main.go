@@ -2,26 +2,21 @@ package main
 
 import (
 	"fmt"
-	"gallery/resources"
 	"gallery/views"
 	"github.com/go-chi/chi/v5"
 	"html/template"
 	"net/http"
-	"path/filepath"
 )
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("views", "home.html")
-	views.Render(w, resources.FS, path, nil)
+	views.Render(w, nil, "master.html", "home.html")
 }
 
 func contactHandler(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("views", "contact.html")
-	views.Render(w, resources.FS, path, nil)
+	views.Render(w, nil, "master.html", "contact.html")
 }
 
 func faqHandler(w http.ResponseWriter, r *http.Request) {
-	path := filepath.Join("views", "faq.html")
 	data := []struct {
 		Question string
 		Answer   template.HTML
@@ -39,7 +34,7 @@ func faqHandler(w http.ResponseWriter, r *http.Request) {
 			Answer:   "Our invoices are sent from our payment provider to the email address that we have on file for your account. Contact us and we’ll be happy to locate any invoices that you’re missing. ",
 		},
 	}
-	views.Render(w, resources.FS, path, data)
+	views.Render(w, data, "master.html", "faq.html")
 }
 
 func main() {
