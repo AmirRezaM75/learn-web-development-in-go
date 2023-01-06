@@ -1,20 +1,24 @@
 package controllers
 
 import (
-	"gallery/views"
 	"html/template"
 	"net/http"
 )
 
 type StaticController struct {
+	View view
+}
+
+type view interface {
+	Render(w http.ResponseWriter, data any, paths ...string)
 }
 
 func (sc StaticController) Home(w http.ResponseWriter, r *http.Request) {
-	views.Render(w, nil, "master.html", "home.html")
+	sc.View.Render(w, nil, "master.html", "home.html")
 }
 
 func (sc StaticController) Contact(w http.ResponseWriter, r *http.Request) {
-	views.Render(w, nil, "master.html", "contact.html")
+	sc.View.Render(w, nil, "master.html", "contact.html")
 }
 
 func (sc StaticController) Faq(w http.ResponseWriter, r *http.Request) {
@@ -35,5 +39,5 @@ func (sc StaticController) Faq(w http.ResponseWriter, r *http.Request) {
 			Answer:   "Our invoices are sent from our payment provider to the email address that we have on file for your account. Contact us and we’ll be happy to locate any invoices that you’re missing. ",
 		},
 	}
-	views.Render(w, data, "master.html", "faq.html")
+	sc.View.Render(w, data, "master.html", "faq.html")
 }

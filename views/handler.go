@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 )
 
-func Render(w http.ResponseWriter, data any, paths ...string) {
+type View struct{}
+
+func (v View) Render(w http.ResponseWriter, data any, paths ...string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 
 	var patterns []string
