@@ -12,11 +12,13 @@ func main() {
 	sc := controllers.StaticController{
 		View: views.View{},
 	}
+	uc := controllers.UserController{}
 
 	r := chi.NewRouter()
 	r.Get("/", sc.Home)
 	r.Get("/contact", sc.Contact)
 	r.Get("/faq", sc.Faq)
+	r.Post("/register", uc.Store)
 	fmt.Println("Listening on port 3000")
 	_ = http.ListenAndServe(":3000", r)
 }
