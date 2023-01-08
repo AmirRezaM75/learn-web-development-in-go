@@ -79,5 +79,17 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	fmt.Println(id)
+	row = db.QueryRow(`
+		SELECT name, email FROM users
+		WHERE id = 1
+	`)
+
+	err = row.Scan(&name, &email)
+	if err == sql.ErrNoRows {
+		fmt.Println("404")
+	}
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(name, email)
 }
