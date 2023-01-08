@@ -64,12 +64,20 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	password := r.FormValue("password")
 
-	_, err = db.Exec(`
+	row := db.QueryRow(`
 		INSERT INTO users (email, name, password)
 		VALUES ($1, $2, $3)
+		RETURNING id
 	`, email, name, password)
+
+	//  If this error is not nil, this error will also be returned from Scan.
+	row.Err()
+	var id int
+	err = row.Scan(&id)
 
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println(id)
 }
