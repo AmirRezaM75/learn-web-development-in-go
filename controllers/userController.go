@@ -9,8 +9,34 @@ import (
 
 type UserController struct{}
 
+type PostgresConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Database string
+	SSLMode  bool
+}
+
+func (c PostgresConfig) toString() string {
+	SSLMode := "disable"
+	if c.SSLMode {
+		SSLMode = "enable"
+	}
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, c.User, c.Password, c.Database, SSLMode)
+}
+
 func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
-	db, err := sql.Open("pgx", "host=localhost port=5432 user=root password=root dbname=unsplash sslmode=disable")
+	config := PostgresConfig{
+		Host:     "localhost",
+		Port:     5432,
+		User:     "root",
+		Password: "root",
+		Database: "unsplash",
+		SSLMode:  false,
+	}
+	db, err := sql.Open("pgx", config.toString())
 	if err != nil {
 		panic(err)
 	}
