@@ -46,14 +46,30 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Fprintln(w, "Connected!")
-	return
 
-	err = r.ParseForm()
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			name VARCHAR(128) NOT NULL,
+			email TEXT UNIQUE NOT NULL,
+		    password TEXT NOT NULL
+		)
+	`)
+
 	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
+		panic(err)
 	}
-	fmt.Fprintln(w, r.PostForm.Get("email"))
-	fmt.Fprintln(w, r.PostFormValue("email"))
-	fmt.Fprintln(w, r.FormValue("email"))
+
+	email := r.FormValue("email")
+	name := r.FormValue("name")
+	password := r.FormValue("password")
+
+	_, err = db.Exec(`
+		INSERT INTO users (email, name, password)
+		VALUES ($1, $2, $3)
+	`, email, name, password)
+
+	if err != nil {
+		panic(err)
+	}
 }
