@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
@@ -52,7 +53,12 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 
 	email := r.FormValue("email")
 	name := r.FormValue("name")
-	password := r.FormValue("password")
+	password := hash(r.FormValue("password"))
+
+	if len(password) == 0 {
+		http.Error(w, "Something goes wrong with hashing password", 500)
+		return
+	}
 
 	row := db.QueryRow(`
 		INSERT INTO users (email, name, password)
@@ -133,4 +139,14 @@ func getDatabase() *sql.DB {
 	fmt.Println("Connected!")
 
 	return db
+}
+
+func hash(password string) string {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+	if err != nil {
+		return ""
+	}
+
+	return string(hashedBytes)
 }
