@@ -18,6 +18,13 @@ type PostgresConfig struct {
 	SSLMode  bool
 }
 
+type User struct {
+	id       int
+	name     string
+	email    string
+	password string
+}
+
 func (c PostgresConfig) toString() string {
 	SSLMode := "disable"
 	if c.SSLMode {
@@ -28,26 +35,9 @@ func (c PostgresConfig) toString() string {
 }
 
 func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
-	config := PostgresConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "root",
-		Password: "root",
-		Database: "unsplash",
-		SSLMode:  false,
-	}
-	db, err := sql.Open("pgx", config.toString())
-	if err != nil {
-		panic(err)
-	}
-	defer db.Close()
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Fprintln(w, "Connected!")
+	db := getDatabase()
 
-	_, err = db.Exec(`
+	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			name VARCHAR(128) NOT NULL,
@@ -92,4 +82,55 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 	fmt.Println(name, email)
+}
+
+func (uc UserController) Index(w http.ResponseWriter, r *http.Request) {
+	db := getDatabase()
+	rows, err := db.Query(`
+		SELECT * FROM users LIMIT 10
+	`)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var users []User
+
+	for rows.Next() {
+		var user User
+
+		err = rows.Scan(&user.id, &user.name, &user.email, &user.password)
+
+		if err != nil {
+			panic(err)
+		}
+
+		users = append(users, user)
+	}
+
+	fmt.Fprintln(w, users)
+}
+
+func getDatabase() *sql.DB {
+	config := PostgresConfig{
+		Host:     "localhost",
+		Port:     5432,
+		User:     "root",
+		Password: "root",
+		Database: "unsplash",
+		SSLMode:  false,
+	}
+	db, err := sql.Open("pgx", config.toString())
+	if err != nil {
+		panic(err)
+	}
+	// TODO: Will be close immediately
+	//defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Connected!")
+
+	return db
 }
