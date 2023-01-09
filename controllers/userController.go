@@ -79,29 +79,49 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "User has been created successfully with id", id)
 }
 
-func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
-	userId := chi.URLParam(r, "userId")
+func (us UserController) Login(w http.ResponseWriter, r *http.Request) {
+	email := r.FormValue("email")
+	password := r.FormValue("password")
 
-	db := getDatabase()
-
-	row := db.QueryRow(`
-		SELECT name, email FROM users
-		WHERE id = $1
-	`, userId)
-
-	var name, email string
-
-	err := row.Scan(&name, &email)
+	user, err := getUserByEmail(email)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
+		return
 	}
 
 	if err != nil {
 		http.Error(w, "Something goes wrong", 500)
+		return
 	}
 
-	fmt.Fprintln(w, name, email)
+	err = bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password))
+
+	if err != nil {
+		w.WriteHeader(401)
+		fmt.Fprintln(w, "Bad credentials")
+		return
+	}
+
+	fmt.Fprintln(w, "You have logged in successfully")
+}
+
+func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
+	userId := chi.URLParam(r, "userId")
+
+	user, err := getUserById(userId)
+
+	if err == sql.ErrNoRows {
+		http.NotFound(w, r)
+		return
+	}
+
+	if err != nil {
+		http.Error(w, "Something goes wrong", 500)
+		return
+	}
+
+	fmt.Fprintln(w, user.name, user.email)
 }
 
 func (uc UserController) Index(w http.ResponseWriter, r *http.Request) {
@@ -163,4 +183,34 @@ func hash(password string) string {
 	}
 
 	return string(hashedBytes)
+}
+
+func getUserById(id string) (User, error) {
+	db := getDatabase()
+
+	var user User
+
+	row := db.QueryRow(`
+		SELECT id, name, email, password FROM users
+		WHERE id = $1
+	`, id)
+
+	err := row.Scan(&user.id, &user.name, &user.email, &user.password)
+
+	return user, err
+}
+
+func getUserByEmail(email string) (User, error) {
+	db := getDatabase()
+
+	var user User
+
+	row := db.QueryRow(`
+		SELECT id, name, email, password FROM users
+		WHERE email = $1
+	`, email)
+
+	err := row.Scan(&user.id, &user.name, &user.email, &user.password)
+
+	return user, err
 }

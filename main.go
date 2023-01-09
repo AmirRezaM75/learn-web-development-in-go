@@ -19,6 +19,7 @@ func main() {
 	r.Get("/contact", sc.Contact)
 	r.Get("/faq", sc.Faq)
 	r.Post("/register", uc.Store)
+	r.Post("/login", uc.Login)
 	r.Get("/users", uc.Index)
 	r.Get("/users/{userId}", uc.Show)
 	fmt.Println("Listening on port 3000")
