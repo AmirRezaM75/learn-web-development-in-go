@@ -20,6 +20,7 @@ func main() {
 	r.Get("/faq", sc.Faq)
 	r.Post("/register", uc.Store)
 	r.Get("/users", uc.Index)
+	r.Get("/users/{userId}", uc.Show)
 	fmt.Println("Listening on port 3000")
 	_ = http.ListenAndServe(":3000", r)
 }

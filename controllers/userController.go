@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -75,19 +76,32 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	row = db.QueryRow(`
-		SELECT name, email FROM users
-		WHERE id = 1
-	`)
+	fmt.Fprintln(w, "User has been created successfully with id", id)
+}
 
-	err = row.Scan(&name, &email)
+func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
+	userId := chi.URLParam(r, "userId")
+
+	db := getDatabase()
+
+	row := db.QueryRow(`
+		SELECT name, email FROM users
+		WHERE id = $1
+	`, userId)
+
+	var name, email string
+
+	err := row.Scan(&name, &email)
+
 	if err == sql.ErrNoRows {
-		fmt.Println("404")
+		http.NotFound(w, r)
 	}
+
 	if err != nil {
-		panic(err)
+		http.Error(w, "Something goes wrong", 500)
 	}
-	fmt.Println(name, email)
+
+	fmt.Fprintln(w, name, email)
 }
 
 func (uc UserController) Index(w http.ResponseWriter, r *http.Request) {
