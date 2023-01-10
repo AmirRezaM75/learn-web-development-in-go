@@ -8,23 +8,12 @@ import (
 	"net/http"
 )
 
-type UserController struct{}
+type UserController struct {
+	UserService models.UserService
+}
 
 func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
-	db := prepareDatabase()
-
-	userService := models.UserService{
-		DB: db,
-	}
-
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			http.Error(w, "Something goes wrong.", 500)
-		}
-	}(db)
-
-	_, err := db.Exec(`
+	_, err := uc.UserService.DB.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
 			email TEXT UNIQUE NOT NULL,
@@ -39,7 +28,7 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	user, err := userService.Create(email, password)
+	user, err := uc.UserService.Create(email, password)
 
 	if err != nil {
 		http.Error(w, "Something goes wrong.", 500)
@@ -50,23 +39,10 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
-	db := prepareDatabase()
-
-	userService := models.UserService{
-		DB: db,
-	}
-
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			http.Error(w, "Something goes wrong.", 500)
-		}
-	}(db)
-
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	err := userService.Login(email, password)
+	err := uc.UserService.Login(email, password)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
@@ -83,22 +59,9 @@ func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
-	db := prepareDatabase()
-
-	userService := models.UserService{
-		DB: db,
-	}
-
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			http.Error(w, "Something goes wrong.", 500)
-		}
-	}(db)
-
 	userId := chi.URLParam(r, "userId")
 
-	user, err := userService.GetUserById(userId)
+	user, err := uc.UserService.GetUserById(userId)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
@@ -114,21 +77,7 @@ func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
 }
 
 func (uc UserController) Index(w http.ResponseWriter, _ *http.Request) {
-
-	db := prepareDatabase()
-
-	userService := models.UserService{
-		DB: db,
-	}
-
-	defer func(db *sql.DB) {
-		err := db.Close()
-		if err != nil {
-			http.Error(w, "Something goes wrong.", 500)
-		}
-	}(db)
-
-	users, err := userService.Get(10)
+	users, err := uc.UserService.Get(10)
 
 	if err != nil {
 		http.Error(w, "Something goes wrong!", 500)
@@ -136,16 +85,4 @@ func (uc UserController) Index(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	_, _ = fmt.Fprintln(w, users)
-}
-
-func prepareDatabase() *sql.DB {
-	config := models.DefaultPostgresConfig()
-
-	db, err := models.Open(config)
-
-	if err != nil {
-		panic(err)
-	}
-
-	return db
 }
