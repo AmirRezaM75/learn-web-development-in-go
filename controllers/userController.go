@@ -3,46 +3,30 @@ package controllers
 import (
 	"database/sql"
 	"fmt"
+	"gallery/models"
 	"github.com/go-chi/chi/v5"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
 )
 
 type UserController struct{}
 
-type PostgresConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Database string
-	SSLMode  bool
-}
-
-type User struct {
-	id       int
-	name     string
-	email    string
-	password string
-}
-
-func (c PostgresConfig) toString() string {
-	SSLMode := "disable"
-	if c.SSLMode {
-		SSLMode = "enable"
-	}
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		c.Host, c.Port, c.User, c.Password, c.Database, SSLMode)
-}
-
 func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
-	db := getDatabase()
+	db := prepareDatabase()
+
+	userService := models.UserService{
+		DB: db,
+	}
+
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			http.Error(w, "Something goes wrong.", 500)
+		}
+	}(db)
 
 	_, err := db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id SERIAL PRIMARY KEY,
-			name VARCHAR(128) NOT NULL,
 			email TEXT UNIQUE NOT NULL,
 		    password TEXT NOT NULL
 		)
@@ -53,63 +37,68 @@ func (uc UserController) Store(w http.ResponseWriter, r *http.Request) {
 	}
 
 	email := r.FormValue("email")
-	name := r.FormValue("name")
-	password := hash(r.FormValue("password"))
+	password := r.FormValue("password")
 
-	if len(password) == 0 {
-		http.Error(w, "Something goes wrong with hashing password", 500)
+	user, err := userService.Create(email, password)
+
+	if err != nil {
+		http.Error(w, "Something goes wrong.", 500)
 		return
 	}
 
-	row := db.QueryRow(`
-		INSERT INTO users (email, name, password)
-		VALUES ($1, $2, $3)
-		RETURNING id
-	`, email, name, password)
-
-	//  If this error is not nil, this error will also be returned from Scan.
-	row.Err()
-	var id int
-	err = row.Scan(&id)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Fprintln(w, "User has been created successfully with id", id)
+	_, _ = fmt.Fprintln(w, "User has been created successfully with id", user.Id)
 }
 
-func (us UserController) Login(w http.ResponseWriter, r *http.Request) {
+func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
+	db := prepareDatabase()
+
+	userService := models.UserService{
+		DB: db,
+	}
+
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			http.Error(w, "Something goes wrong.", 500)
+		}
+	}(db)
+
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	user, err := getUserByEmail(email)
+	err := userService.Login(email, password)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
 		return
 	}
-
-	if err != nil {
-		http.Error(w, "Something goes wrong", 500)
-		return
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(user.password), []byte(password))
 
 	if err != nil {
 		w.WriteHeader(401)
-		fmt.Fprintln(w, "Bad credentials")
+		_, _ = fmt.Fprintln(w, "Bad credentials")
 		return
 	}
 
-	fmt.Fprintln(w, "You have logged in successfully")
+	_, _ = fmt.Fprintln(w, "You have logged in successfully")
 }
 
 func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
+	db := prepareDatabase()
+
+	userService := models.UserService{
+		DB: db,
+	}
+
+	defer func(db *sql.DB) {
+		err := db.Close()
+		if err != nil {
+			http.Error(w, "Something goes wrong.", 500)
+		}
+	}(db)
+
 	userId := chi.URLParam(r, "userId")
 
-	user, err := getUserById(userId)
+	user, err := userService.GetUserById(userId)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
@@ -121,96 +110,42 @@ func (uc UserController) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Fprintln(w, user.name, user.email)
+	_, _ = fmt.Fprintln(w, user.Email)
 }
 
-func (uc UserController) Index(w http.ResponseWriter, r *http.Request) {
-	db := getDatabase()
-	rows, err := db.Query(`
-		SELECT * FROM users LIMIT 10
-	`)
+func (uc UserController) Index(w http.ResponseWriter, _ *http.Request) {
 
-	if err != nil {
-		panic(err)
+	db := prepareDatabase()
+
+	userService := models.UserService{
+		DB: db,
 	}
 
-	var users []User
-
-	for rows.Next() {
-		var user User
-
-		err = rows.Scan(&user.id, &user.name, &user.email, &user.password)
-
+	defer func(db *sql.DB) {
+		err := db.Close()
 		if err != nil {
-			panic(err)
+			http.Error(w, "Something goes wrong.", 500)
 		}
+	}(db)
 
-		users = append(users, user)
+	users, err := userService.Get(10)
+
+	if err != nil {
+		http.Error(w, "Something goes wrong!", 500)
+		return
 	}
 
-	fmt.Fprintln(w, users)
+	_, _ = fmt.Fprintln(w, users)
 }
 
-func getDatabase() *sql.DB {
-	config := PostgresConfig{
-		Host:     "localhost",
-		Port:     5432,
-		User:     "root",
-		Password: "root",
-		Database: "unsplash",
-		SSLMode:  false,
-	}
-	db, err := sql.Open("pgx", config.toString())
+func prepareDatabase() *sql.DB {
+	config := models.DefaultPostgresConfig()
+
+	db, err := models.Open(config)
+
 	if err != nil {
 		panic(err)
 	}
-	// TODO: Will be close immediately
-	//defer db.Close()
-	err = db.Ping()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("Connected!")
 
 	return db
-}
-
-func hash(password string) string {
-	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-
-	if err != nil {
-		return ""
-	}
-
-	return string(hashedBytes)
-}
-
-func getUserById(id string) (User, error) {
-	db := getDatabase()
-
-	var user User
-
-	row := db.QueryRow(`
-		SELECT id, name, email, password FROM users
-		WHERE id = $1
-	`, id)
-
-	err := row.Scan(&user.id, &user.name, &user.email, &user.password)
-
-	return user, err
-}
-
-func getUserByEmail(email string) (User, error) {
-	db := getDatabase()
-
-	var user User
-
-	row := db.QueryRow(`
-		SELECT id, name, email, password FROM users
-		WHERE email = $1
-	`, email)
-
-	err := row.Scan(&user.id, &user.name, &user.email, &user.password)
-
-	return user, err
 }
