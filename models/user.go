@@ -106,18 +106,18 @@ func (us UserService) Get(limit int) ([]User, error) {
 	return users, nil
 }
 
-func (us UserService) Login(email, password string) error {
+func (us UserService) Login(email, password string) (*User, error) {
 	user, err := us.getUserByEmail(email)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &user, nil
 }

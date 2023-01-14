@@ -6,6 +6,7 @@ import (
 	"gallery/models"
 	"github.com/go-chi/chi/v5"
 	"net/http"
+	"strconv"
 )
 
 type UserController struct {
@@ -42,7 +43,7 @@ func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
 	email := r.FormValue("email")
 	password := r.FormValue("password")
 
-	err := uc.UserService.Login(email, password)
+	user, err := uc.UserService.Login(email, password)
 
 	if err == sql.ErrNoRows {
 		http.NotFound(w, r)
@@ -54,6 +55,12 @@ func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
 		_, _ = fmt.Fprintln(w, "Bad credentials")
 		return
 	}
+	cookie := http.Cookie{
+		Name:  "session",
+		Value: strconv.Itoa(user.Id),
+		Path:  "/",
+	}
+	http.SetCookie(w, &cookie)
 
 	_, _ = fmt.Fprintln(w, "You have logged in successfully")
 }
