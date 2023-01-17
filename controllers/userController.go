@@ -93,3 +93,13 @@ func (uc UserController) Index(w http.ResponseWriter, _ *http.Request) {
 
 	_, _ = fmt.Fprintln(w, users)
 }
+
+func (uc UserController) Me(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("session")
+	if err != nil {
+		http.Error(w, "Unauthenticated.", 401)
+		return
+	}
+
+	fmt.Fprintln(w, session.Value)
+}
