@@ -56,9 +56,10 @@ func (uc UserController) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	cookie := http.Cookie{
-		Name:  "session",
-		Value: strconv.Itoa(user.Id),
-		Path:  "/",
+		Name:     "session",
+		Value:    strconv.Itoa(user.Id),
+		Path:     "/",
+		HttpOnly: true,
 	}
 	http.SetCookie(w, &cookie)
 
